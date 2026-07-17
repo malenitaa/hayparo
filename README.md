@@ -18,44 +18,54 @@ se equivoca), no como el flujo normal.
 - **Detección automática** (`/api/cron/check-strike`, disparada por un
   workflow de **GitHub Actions cada 15 minutos** —
   [`.github/workflows/check-strike.yml`](./.github/workflows/check-strike.yml)):
-  1. Busca titulares recientes en el RSS de búsqueda de Google News
+  1. El trigger de GitHub Actions dispara siempre cada 15 min, pero la
+     ruta decide si vale la pena hacer el chequeo completo: si el estado
+     guardado ya es **NO hay paro** y se actualizó hace menos de **2
+     horas**, no hace nada (evita gastar llamadas a Gemini cada 15 min
+     sin necesidad). Si hay paro activo, o pasaron más de 2hs desde el
+     último chequeo, sigue con los pasos de abajo.
+  2. Busca titulares recientes en el RSS de búsqueda de Google News
      (agrega Clarín, La Nación, Infobae, Ámbito, etc. en un solo feed —
      ver la nota de diseño más abajo sobre por qué se eligió esta fuente
      en vez de los RSS de cada medio por separado).
-  2. Filtra por palabras clave (paro, huelga, colectivo, subte, tren,
+  3. Filtra por palabras clave (paro, huelga, colectivo, subte, tren,
      gremio, UTA) y por antigüedad (últimas 24hs).
-  3. Si no queda ningún candidato relevante, el estado se fija en **NO hay
+  4. Si no queda ningún candidato relevante, el estado se fija en **NO hay
      paro** (mejor un falso negativo ocasional que gritar paro sin
      evidencia).
-  4. Si hay candidatos, se los pasa a Gemini Flash con un prompt que
+  5. Si hay candidatos, se los pasa a Gemini Flash con un prompt que
      decide si hay un paro **confirmado para hoy específicamente** (no la
      semana que viene, no uno ya pasado), devuelve un resumen corto y un
      desglose por servicio (colectivo/subte/tren) con las líneas puntuales
      de cada uno cuando los titulares las mencionan.
-  5. Actualiza la misma fila de `strike_status`, guardando también el
+  6. Actualiza la misma fila de `strike_status`, guardando también el
      titular que originó la detección (`detected_from`) y el origen
      (`updated_by = 'cron'`), para poder auditar si se equivocó.
-  6. Si falla el fetch a Google News o la llamada a Gemini, **no toca el
+  7. Si falla el fetch a Google News o la llamada a Gemini, **no toca el
      estado guardado** — solo loguea el error. Una falla transitoria no
      debe pisar un dato válido.
+
+  En la práctica: chequeo completo cada 15 min mientras hay un paro
+  activo (para captar cambios de horario, líneas que se suman, o que se
+  levante el paro), y cada 2hs cuando está tranquilo.
 
   Nota: se eligió GitHub Actions en vez de Vercel Cron porque el plan
   Hobby de Vercel limita cada entrada de cron a una corrida por día (para
   lograr una cadencia más frecuente hacían falta muchas entradas
   separadas, una por horario). GitHub Actions no tiene ese límite — el
   mínimo real que respeta es cada 5 minutos, aunque bajo carga puede
-  demorar la ejecución un poco. Sigue sin haber forma de acelerar la
-  frecuencia *solo* cuando hay un paro activo sin lógica adicional (esto
-  corre siempre al mismo intervalo fijo).
+  demorar la ejecución un poco.
 - `/admin` está protegida con una contraseña única (variable de entorno
   `ADMIN_PASSWORD`, sin usuarios). Sirve para corregir a mano si el
   automático se equivocó: togglear SÍ/NO, contexto libre y, opcionalmente,
   el detalle de líneas/servicios adheridos (colectivo, subte, tren).
   Guardar ahí marca `updated_by = 'manual'`.
-  **Importante**: como el chequeo automático vuelve a correr cada 15
-  minutos, una corrección manual puede quedar pisada en la próxima
-  corrida si esta vuelve a encontrar (o no encuentra) señal — no es un
-  override permanente, es un parche hasta el siguiente chequeo.
+  **Importante**: una corrección manual puede quedar pisada en el
+  próximo chequeo completo si este vuelve a encontrar (o no encuentra)
+  señal — no es un override permanente, es un parche hasta el siguiente
+  chequeo. Si corregís marcando "hay paro", el siguiente chequeo completo
+  llega en 15 min; si corregís a "no hay paro", el siguiente chequeo
+  completo puede tardar hasta 2hs (ver la nota de cadencia arriba).
 - Todo se guarda en una sola fila de la tabla `strike_status` en Supabase
   (se pisa en cada actualización, no hay historial).
 
@@ -130,8 +140,9 @@ Gemini funcionan como se espera.
    total, horario) — solo se usa cuando hay paro.
 4. Opcional: detallar por servicio (colectivo, subte, tren) qué líneas
    específicas están adheridas.
-5. Guardar. Tené en cuenta que la próxima corrida automática (cada 15
-   minutos) puede volver a cambiar el estado según lo que encuentre.
+5. Guardar. Tené en cuenta que el próximo chequeo automático completo
+   (cada 15 min si quedó "hay paro", cada 2hs si quedó "no hay paro")
+   puede volver a cambiar el estado según lo que encuentre.
 
 ## Deployar a Vercel
 

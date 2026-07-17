@@ -1,13 +1,32 @@
 import { classifyStrike } from "@/lib/gemini";
 import { fetchCandidateHeadlines, filterRecentRelevant } from "@/lib/google-news";
-import { setStrikeStatus } from "@/lib/strike-status";
+import { getStrikeStatus, setStrikeStatus } from "@/lib/strike-status";
 
 const LOG_PREFIX = "[cron:check-strike]";
+
+// El trigger de GitHub Actions dispara siempre cada 15 min. Cuando el
+// estado guardado ya dice "no hay paro", no hace falta gastar una
+// llamada a Gemini cada 15 min — alcanza con revisar cada 2hs. Si el
+// estado es "hay paro", sí conviene chequear seguido (cada 15 min) por
+// si cambia el horario, se suman líneas, o se levanta el paro.
+const CALM_RECHECK_INTERVAL_MS = 2 * 60 * 60 * 1000;
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
+  const current = await getStrikeStatus();
+  if (current.ok && !current.isStrike) {
+    const elapsedMs = Date.now() - Date.parse(current.updatedAt);
+    if (Number.isFinite(elapsedMs) && elapsedMs < CALM_RECHECK_INTERVAL_MS) {
+      console.log(
+        LOG_PREFIX,
+        `todo tranquilo, último chequeo hace ${Math.round(elapsedMs / 60000)} min (menos de 2hs) -> se salta este chequeo`
+      );
+      return Response.json({ ok: true, skipped: true, reason: "calm-recent-check" });
+    }
   }
 
   console.log(LOG_PREFIX, "arrancando chequeo automático");
