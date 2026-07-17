@@ -1,0 +1,23 @@
+name: Check strike status
+
+on:
+  schedule:
+    # Cada 15 minutos. GitHub puede demorar la ejecución bajo carga alta,
+    # no es un timer exacto.
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar a /api/cron/check-strike
+        env:
+          HAYPARO_URL: ${{ vars.HAYPARO_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$HAYPARO_URL" ]; then
+            echo "Falta la variable de repo HAYPARO_URL (Settings > Secrets and variables > Actions > Variables)"
+            exit 1
+          fi
+          curl -sS -f -H "Authorization: Bearer $CRON_SECRET" "$HAYPARO_URL/api/cron/check-strike"

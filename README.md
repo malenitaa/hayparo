@@ -15,8 +15,9 @@ se equivoca), no como el flujo normal.
   tren, con sus líneas específicas cuando se sabe), aparece un botón ("Ver
   líneas y servicios afectados") que lo muestra en un popup, sin mover ni
   desordenar la respuesta principal.
-- **Detección automática** (`/api/cron/check-strike`, disparada por Vercel
-  Cron **cada hora, de 6 a 22hs de Argentina** — 17 corridas por día):
+- **Detección automática** (`/api/cron/check-strike`, disparada por un
+  workflow de **GitHub Actions cada 15 minutos** —
+  [`.github/workflows/check-strike.yml`](./.github/workflows/check-strike.yml)):
   1. Busca titulares recientes en el RSS de búsqueda de Google News
      (agrega Clarín, La Nación, Infobae, Ámbito, etc. en un solo feed —
      ver la nota de diseño más abajo sobre por qué se eligió esta fuente
@@ -38,21 +39,23 @@ se equivoca), no como el flujo normal.
      estado guardado** — solo loguea el error. Una falla transitoria no
      debe pisar un dato válido.
 
-  Nota: el plan Hobby de Vercel no permite que **una** entrada de cron
-  dispare más de una vez por día, así que la cadencia horaria se logra
-  con 17 entradas separadas en `vercel.json` (una por hora), cada una
-  disparando una vez al día — no hay forma de acelerar la frecuencia
-  dinámicamente solo cuando hay un paro activo sin infraestructura
-  adicional (Vercel Pro, o un mecanismo de re-chequeo propio).
+  Nota: se eligió GitHub Actions en vez de Vercel Cron porque el plan
+  Hobby de Vercel limita cada entrada de cron a una corrida por día (para
+  lograr una cadencia más frecuente hacían falta muchas entradas
+  separadas, una por horario). GitHub Actions no tiene ese límite — el
+  mínimo real que respeta es cada 5 minutos, aunque bajo carga puede
+  demorar la ejecución un poco. Sigue sin haber forma de acelerar la
+  frecuencia *solo* cuando hay un paro activo sin lógica adicional (esto
+  corre siempre al mismo intervalo fijo).
 - `/admin` está protegida con una contraseña única (variable de entorno
   `ADMIN_PASSWORD`, sin usuarios). Sirve para corregir a mano si el
   automático se equivocó: togglear SÍ/NO, contexto libre y, opcionalmente,
   el detalle de líneas/servicios adheridos (colectivo, subte, tren).
   Guardar ahí marca `updated_by = 'manual'`.
-  **Importante**: como el cron vuelve a correr cada pocas horas, una
-  corrección manual puede quedar pisada en la próxima corrida automática si
-  esta vuelve a encontrar (o no encuentra) señal — no es un override
-  permanente, es un parche hasta el siguiente chequeo.
+  **Importante**: como el chequeo automático vuelve a correr cada 15
+  minutos, una corrección manual puede quedar pisada en la próxima
+  corrida si esta vuelve a encontrar (o no encuentra) señal — no es un
+  override permanente, es un parche hasta el siguiente chequeo.
 - Todo se guarda en una sola fila de la tabla `strike_status` en Supabase
   (se pisa en cada actualización, no hay historial).
 
@@ -127,8 +130,8 @@ Gemini funcionan como se espera.
    total, horario) — solo se usa cuando hay paro.
 4. Opcional: detallar por servicio (colectivo, subte, tren) qué líneas
    específicas están adheridas.
-5. Guardar. Tené en cuenta que la próxima corrida del cron (cada pocas
-   horas) puede volver a cambiar el estado según lo que encuentre.
+5. Guardar. Tené en cuenta que la próxima corrida automática (cada 15
+   minutos) puede volver a cambiar el estado según lo que encuentre.
 
 ## Deployar a Vercel
 
@@ -136,17 +139,41 @@ Gemini funcionan como se espera.
 2. En las variables de entorno del proyecto en Vercel, cargar las de
    `.env.example`: `ADMIN_PASSWORD`, `SUPABASE_URL`,
    `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `CRON_SECRET`.
-3. Deploy. Vercel detecta `vercel.json` y programa el cron automáticamente
-   (17 entradas, una por hora de 6 a 22hs ART — cada una es,
-   individualmente, una corrida por día, así que funciona en el plan
-   Hobby/gratuito sin upgrade).
+3. Deploy.
 4. Verificar que `supabase-schema.sql` ya se haya corrido en el proyecto
    de Supabase antes del primer visit, así la home no arranca rota.
-5. Revisar los logs de la primera corrida del cron (Vercel → tu proyecto →
-   Logs, filtrar por `check-strike`) para confirmar que el fetch a Google
-   News y Gemini responden bien.
+5. Configurar el trigger de GitHub Actions (ver siguiente sección) — sin
+   esto el estado no se actualiza solo, solo queda lo que cargues a mano
+   en `/admin`.
+
+## Configurar el chequeo automático (GitHub Actions)
+
+El workflow ya está en el repo
+([`.github/workflows/check-strike.yml`](./.github/workflows/check-strike.yml)),
+pero necesita dos valores configurados en GitHub para saber a qué URL
+pegarle y con qué secreto autenticarse:
+
+1. En el repo de GitHub → **Settings → Secrets and variables → Actions**.
+2. Pestaña **Variables** → **New repository variable**:
+   - Nombre: `HAYPARO_URL`
+   - Valor: el dominio de producción, sin `/` al final (ej.
+     `https://hayparo.vercel.app`).
+3. Pestaña **Secrets** → **New repository secret**:
+   - Nombre: `CRON_SECRET`
+   - Valor: el mismo que cargaste como `CRON_SECRET` en Vercel.
+4. **Importante**: los workflows con `schedule` de GitHub Actions solo se
+   disparan solos con la versión del archivo que está en la **rama por
+   defecto** del repo (normalmente `main`). Si este workflow todavía está
+   en una rama aparte, no va a correr solo hasta que se mergee — mientras
+   tanto podés dispararlo a mano desde la pestaña **Actions** del repo
+   (botón "Run workflow", gracias al trigger `workflow_dispatch`).
+5. Después de la primera corrida (automática o manual), revisá la
+   pestaña **Actions** del repo para confirmar que el step no falló, y
+   los logs de Vercel (filtrando por `check-strike`) para ver el detalle
+   de qué encontró.
 
 ## Stack
 
-Next.js (App Router) + TypeScript + Tailwind + Supabase + Vercel Cron +
-Gemini Flash (clasificación de titulares). Sin APIs externas pagas.
+Next.js (App Router) + TypeScript + Tailwind + Supabase + GitHub Actions
+(scheduler) + Gemini Flash (clasificación de titulares). Sin APIs externas
+pagas.
