@@ -42,8 +42,12 @@ Respondé ÚNICAMENTE con un objeto JSON con esta forma exacta, sin texto adicio
 }
 
 - "isStrike": true solo si hay evidencia clara de un paro confirmado para HOY.
-- "message": si isStrike es true, una frase corta en español (gremio, qué servicios afecta — colectivos/subte/trenes/todos —, si es parcial o total, horario si se sabe). Si isStrike es false, string vacío.
-- "affectedLines": si alguno de los titulares menciona números de línea de colectivo específicos que se suman al paro, listalos separados por coma (ej: "12, 45, 60"). Si ningún titular da ese detalle, string vacío — no inventes números que no estén en los titulares.
+- "message": si isStrike es true, una frase corta en español que diga CLARAMENTE qué servicios afecta — colectivos, subte, trenes, o todos —, el gremio, si es parcial o total, y horario si se sabe. Si un titular no aclara si afecta a los tres servicios o solo a alguno, decilo explícitamente en vez de asumir "todos". Si isStrike es false, string vacío.
+- "affectedLines": si isStrike es true, desglosá por servicio lo que sepas de los titulares, en líneas separadas, con este formato (omití el/los servicios que no estén afectados o de los que no haya info):
+  "Colectivos: 12, 45, 60 (o 'todas las líneas' si así lo dice el titular)
+  Subte: línea A, B (o 'todas las líneas')
+  Trenes: Sarmiento, Mitre (o 'todas las líneas')"
+  Si ningún titular da detalle de líneas/servicios puntuales, string vacío — no inventes datos que no estén en los titulares.
 - "sourceHeadline": el titular (de la lista) que más sustenta tu decisión. String vacío si isStrike es false.
 
 Ante la duda, respondé isStrike: false.`;

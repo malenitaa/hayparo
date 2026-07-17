@@ -12,7 +12,7 @@ export default function LinesPopup({ lines }: { lines: string }) {
         onClick={() => setOpen(true)}
         className="mt-6 rounded-full bg-white px-6 py-3 text-base font-semibold text-zinc-900 shadow-sm hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
       >
-        Ver líneas afectadas
+        Ver líneas y servicios afectados
       </button>
 
       {open ? (
@@ -20,7 +20,7 @@ export default function LinesPopup({ lines }: { lines: string }) {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
           role="dialog"
           aria-modal="true"
-          aria-label="Líneas afectadas"
+          aria-label="Líneas y servicios afectados"
           onClick={() => setOpen(false)}
         >
           <div
@@ -29,7 +29,7 @@ export default function LinesPopup({ lines }: { lines: string }) {
           >
             <div className="mb-4 flex items-center justify-between gap-4">
               <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
-                Líneas afectadas
+                Líneas y servicios afectados
               </h2>
               <button
                 type="button"

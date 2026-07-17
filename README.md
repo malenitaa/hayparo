@@ -11,9 +11,10 @@ se equivoca), no como el flujo normal.
 - `/` lee el estado actual desde Supabase en cada visita (sin caché) y
   muestra SÍ/NO en grande, con el contexto (gremio, servicios afectados,
   horario) cuando hay paro, y la fecha/hora de la última actualización. Si
-  se cargaron líneas de colectivo adheridas, aparece un botón ("Ver líneas
-  afectadas") que las muestra en un popup, sin mover ni desordenar la
-  respuesta principal.
+  se cargó el detalle de líneas/servicios adheridos (colectivo, subte,
+  tren, con sus líneas específicas cuando se sabe), aparece un botón ("Ver
+  líneas y servicios afectados") que lo muestra en un popup, sin mover ni
+  desordenar la respuesta principal.
 - **Detección automática** (`/api/cron/check-strike`, disparada por Vercel
   Cron **cada hora, de 6 a 22hs de Argentina** — 17 corridas por día):
   1. Busca titulares recientes en el RSS de búsqueda de Google News
@@ -27,9 +28,9 @@ se equivoca), no como el flujo normal.
      evidencia).
   4. Si hay candidatos, se los pasa a Gemini Flash con un prompt que
      decide si hay un paro **confirmado para hoy específicamente** (no la
-     semana que viene, no uno ya pasado), devuelve un resumen corto y, si
-     algún titular menciona números de línea de colectivo puntuales, los
-     números de esas líneas.
+     semana que viene, no uno ya pasado), devuelve un resumen corto y un
+     desglose por servicio (colectivo/subte/tren) con las líneas puntuales
+     de cada uno cuando los titulares las mencionan.
   5. Actualiza la misma fila de `strike_status`, guardando también el
      titular que originó la detección (`detected_from`) y el origen
      (`updated_by = 'cron'`), para poder auditar si se equivocó.
@@ -46,7 +47,8 @@ se equivoca), no como el flujo normal.
 - `/admin` está protegida con una contraseña única (variable de entorno
   `ADMIN_PASSWORD`, sin usuarios). Sirve para corregir a mano si el
   automático se equivocó: togglear SÍ/NO, contexto libre y, opcionalmente,
-  líneas de colectivo adheridas. Guardar ahí marca `updated_by = 'manual'`.
+  el detalle de líneas/servicios adheridos (colectivo, subte, tren).
+  Guardar ahí marca `updated_by = 'manual'`.
   **Importante**: como el cron vuelve a correr cada pocas horas, una
   corrección manual puede quedar pisada en la próxima corrida automática si
   esta vuelve a encontrar (o no encuentra) señal — no es un override
@@ -123,7 +125,8 @@ Gemini funcionan como se espera.
 2. Togglear SÍ/NO hay paro.
 3. Escribir el contexto (gremio, servicios afectados, si es parcial o
    total, horario) — solo se usa cuando hay paro.
-4. Opcional: listar las líneas de colectivo adheridas.
+4. Opcional: detallar por servicio (colectivo, subte, tren) qué líneas
+   específicas están adheridas.
 5. Guardar. Tené en cuenta que la próxima corrida del cron (cada pocas
    horas) puede volver a cambiar el estado según lo que encuentre.
 

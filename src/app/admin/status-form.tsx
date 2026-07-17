@@ -121,14 +121,16 @@ export default function StatusForm({
             htmlFor="affectedLines"
             className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
           >
-            Líneas de colectivo adheridas (opcional)
+            Líneas/servicios adheridos (opcional)
           </label>
           <textarea
             id="affectedLines"
             name="affectedLines"
-            rows={2}
+            rows={3}
             defaultValue={initialAffectedLines}
-            placeholder="Ej: 12, 15, 60, 152 — o 'todas las líneas de la UTA'"
+            placeholder={
+              "Ej:\nColectivos: 12, 15, 60, 152 (o 'todas')\nSubte: línea A, B\nTrenes: Sarmiento, Mitre"
+            }
             className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
           />
           <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
