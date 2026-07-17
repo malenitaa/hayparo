@@ -157,7 +157,12 @@ pegarle y con qué secreto autenticarse:
 2. Pestaña **Variables** → **New repository variable**:
    - Nombre: `HAYPARO_URL`
    - Valor: el dominio de producción, sin `/` al final (ej.
-     `https://hayparo.net.ar`).
+     `https://www.hayparo.net.ar`). **Importante**: usá el dominio que NO
+     redirige (revisá en Vercel → Domains cuál es el primario) — si le
+     pegás al que redirige a otro host, herramientas como `curl
+     --location` (y probablemente el propio workflow) descartan el header
+     `Authorization` al seguir la redirección entre hosts distintos, y el
+     chequeo automático va a fallar en silencio con 401.
 3. Pestaña **Secrets** → **New repository secret**:
    - Nombre: `CRON_SECRET`
    - Valor: el mismo que cargaste como `CRON_SECRET` en Vercel.
