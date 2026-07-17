@@ -8,6 +8,8 @@ type Props = {
   initialMessage: string;
   initialAffectedLines: string;
   updatedAt: string | null;
+  updatedBy: "cron" | "manual" | null;
+  detectedFrom: string;
 };
 
 export default function StatusForm({
@@ -15,6 +17,8 @@ export default function StatusForm({
   initialMessage,
   initialAffectedLines,
   updatedAt,
+  updatedBy,
+  detectedFrom,
 }: Props) {
   const [state, formAction, pending] = useActionState(updateStatus, undefined);
   const [isStrike, setIsStrike] = useState(initialIsStrike);
@@ -35,12 +39,31 @@ export default function StatusForm({
         </form>
       </div>
 
+      <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+        El estado se actualiza solo, varias veces al día, a partir de
+        noticias. Guardar acá lo pisa como <strong>corrección manual</strong>{" "}
+        — usalo solo si el sistema automático se equivocó, no como la forma
+        normal de actualizar.
+      </p>
+
       {updatedAt ? (
         <p className="mb-6 text-xs text-zinc-500 dark:text-zinc-400">
           Última actualización guardada:{" "}
           {new Date(updatedAt).toLocaleString("es-AR", {
             timeZone: "America/Argentina/Buenos_Aires",
           })}
+          {updatedBy ? (
+            <>
+              {" "}
+              — origen:{" "}
+              <strong>
+                {updatedBy === "cron" ? "automático" : "manual"}
+              </strong>
+              {updatedBy === "cron" && detectedFrom
+                ? ` (titular: "${detectedFrom}")`
+                : null}
+            </>
+          ) : null}
         </p>
       ) : null}
 

@@ -59,7 +59,7 @@ export default async function Home() {
           </p>
         ) : !isStrike ? (
           <p className="mt-2 max-w-xl text-base font-medium text-white sm:text-lg">
-            Circulá tranquila, no hay paros confirmados para hoy.
+            Todo tranquilo, no hay paros confirmados para hoy.
           </p>
         ) : null}
 
@@ -76,7 +76,7 @@ export default async function Home() {
         <p className="mx-auto max-w-xl text-center text-xs leading-5 text-zinc-600 dark:text-zinc-400 sm:text-sm">
           <strong>¿Hay Paro Hoy?</strong> te dice al instante si hay paro de
           transporte público en Buenos Aires — colectivos, subte y trenes —,
-          actualizado a mano todos los días.
+          revisado varias veces al día.
         </p>
       </section>
     </div>

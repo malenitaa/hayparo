@@ -31,6 +31,8 @@ export default async function AdminPage() {
         initialMessage={status.ok ? status.message : ""}
         initialAffectedLines={status.ok ? status.affectedLines : ""}
         updatedAt={status.ok ? status.updatedAt : null}
+        updatedBy={status.ok ? status.updatedBy : null}
+        detectedFrom={status.ok ? status.detectedFrom : ""}
       />
     </div>
   );

@@ -44,7 +44,7 @@ export async function updateStatus(
   const affectedLines = String(formData.get("affectedLines") ?? "");
 
   try {
-    await setStrikeStatus(isStrike, message, affectedLines);
+    await setStrikeStatus(isStrike, message, affectedLines, "manual");
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Error al guardar" };
   }
