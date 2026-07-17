@@ -15,7 +15,7 @@ se equivoca), no como el flujo normal.
   afectadas") que las muestra en un popup, sin mover ni desordenar la
   respuesta principal.
 - **Detección automática** (`/api/cron/check-strike`, disparada por Vercel
-  Cron 4 veces al día — 6, 10, 14 y 18hs de Argentina):
+  Cron **cada hora, de 6 a 22hs de Argentina** — 17 corridas por día):
   1. Busca titulares recientes en el RSS de búsqueda de Google News
      (agrega Clarín, La Nación, Infobae, Ámbito, etc. en un solo feed —
      ver la nota de diseño más abajo sobre por qué se eligió esta fuente
@@ -27,13 +27,22 @@ se equivoca), no como el flujo normal.
      evidencia).
   4. Si hay candidatos, se los pasa a Gemini Flash con un prompt que
      decide si hay un paro **confirmado para hoy específicamente** (no la
-     semana que viene, no uno ya pasado) y devuelve un resumen corto.
+     semana que viene, no uno ya pasado), devuelve un resumen corto y, si
+     algún titular menciona números de línea de colectivo puntuales, los
+     números de esas líneas.
   5. Actualiza la misma fila de `strike_status`, guardando también el
      titular que originó la detección (`detected_from`) y el origen
      (`updated_by = 'cron'`), para poder auditar si se equivocó.
   6. Si falla el fetch a Google News o la llamada a Gemini, **no toca el
      estado guardado** — solo loguea el error. Una falla transitoria no
      debe pisar un dato válido.
+
+  Nota: el plan Hobby de Vercel no permite que **una** entrada de cron
+  dispare más de una vez por día, así que la cadencia horaria se logra
+  con 17 entradas separadas en `vercel.json` (una por hora), cada una
+  disparando una vez al día — no hay forma de acelerar la frecuencia
+  dinámicamente solo cuando hay un paro activo sin infraestructura
+  adicional (Vercel Pro, o un mecanismo de re-chequeo propio).
 - `/admin` está protegida con una contraseña única (variable de entorno
   `ADMIN_PASSWORD`, sin usuarios). Sirve para corregir a mano si el
   automático se equivocó: togglear SÍ/NO, contexto libre y, opcionalmente,
@@ -125,8 +134,9 @@ Gemini funcionan como se espera.
    `.env.example`: `ADMIN_PASSWORD`, `SUPABASE_URL`,
    `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `CRON_SECRET`.
 3. Deploy. Vercel detecta `vercel.json` y programa el cron automáticamente
-   (4 corridas diarias — cada una es, individualmente, una corrida por
-   día, así que funciona en el plan Hobby/gratuito sin upgrade).
+   (17 entradas, una por hora de 6 a 22hs ART — cada una es,
+   individualmente, una corrida por día, así que funciona en el plan
+   Hobby/gratuito sin upgrade).
 4. Verificar que `supabase-schema.sql` ya se haya corrido en el proyecto
    de Supabase antes del primer visit, así la home no arranca rota.
 5. Revisar los logs de la primera corrida del cron (Vercel → tu proyecto →

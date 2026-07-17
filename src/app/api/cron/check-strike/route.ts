@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     await setStrikeStatus(
       result.isStrike,
       result.isStrike ? result.message : "",
-      "",
+      result.isStrike ? result.affectedLines : "",
       "cron",
       result.isStrike ? result.sourceHeadline : ""
     );

@@ -3,6 +3,7 @@ import type { NewsItem } from "@/lib/google-news";
 export type StrikeClassification = {
   isStrike: boolean;
   message: string;
+  affectedLines: string;
   sourceHeadline: string;
 };
 
@@ -36,11 +37,13 @@ Respondé ÚNICAMENTE con un objeto JSON con esta forma exacta, sin texto adicio
 {
   "isStrike": boolean,
   "message": string,
+  "affectedLines": string,
   "sourceHeadline": string
 }
 
 - "isStrike": true solo si hay evidencia clara de un paro confirmado para HOY.
 - "message": si isStrike es true, una frase corta en español (gremio, qué servicios afecta — colectivos/subte/trenes/todos —, si es parcial o total, horario si se sabe). Si isStrike es false, string vacío.
+- "affectedLines": si alguno de los titulares menciona números de línea de colectivo específicos que se suman al paro, listalos separados por coma (ej: "12, 45, 60"). Si ningún titular da ese detalle, string vacío — no inventes números que no estén en los titulares.
 - "sourceHeadline": el titular (de la lista) que más sustenta tu decisión. String vacío si isStrike es false.
 
 Ante la duda, respondé isStrike: false.`;
@@ -96,6 +99,8 @@ export async function classifyStrike(
   return {
     isStrike: result.isStrike as boolean,
     message: typeof result.message === "string" ? result.message : "",
+    affectedLines:
+      typeof result.affectedLines === "string" ? result.affectedLines : "",
     sourceHeadline:
       typeof result.sourceHeadline === "string" ? result.sourceHeadline : "",
   };
