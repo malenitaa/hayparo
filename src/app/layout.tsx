@@ -17,6 +17,12 @@ export const metadata: Metadata = {
     locale: "es_AR",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "¿Hay Paro Hoy en Buenos Aires?",
+    description:
+      "SÍ o NO, actualizado a diario: paro de colectivos, subte o trenes en Buenos Aires.",
+  },
   alternates: {
     canonical: SITE_URL,
   },
