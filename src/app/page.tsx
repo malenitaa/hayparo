@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getStrikeStatus } from "@/lib/strike-status";
+import LinesPopup from "./lines-popup";
 
 export const dynamic = "force-dynamic";
 
@@ -30,14 +31,17 @@ export default async function Home() {
     );
   }
 
-  const { isStrike, message, updatedAt } = status;
+  const { isStrike, message, affectedLines, updatedAt } = status;
   const bgClass = isStrike
     ? "bg-red-600 dark:bg-red-700"
     : "bg-emerald-600 dark:bg-emerald-700";
 
   return (
     <div className={`flex flex-1 flex-col ${bgClass} transition-colors`}>
-      <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+      {/* items-center + top padding (not justify-center) so the SI/NO answer
+          sits at a fixed position regardless of how much text/buttons render
+          below it (context line, lines popup, etc). */}
+      <main className="flex flex-1 flex-col items-center px-6 pt-10 pb-16 text-center sm:pt-16">
         <h1 className="text-2xl font-medium text-white/90 sm:text-3xl">
           ¿Hay paro hoy en Buenos Aires?
         </h1>
@@ -54,6 +58,10 @@ export default async function Home() {
           <p className="mt-6 max-w-xl text-lg font-medium text-white sm:text-xl">
             Circulá tranquila, no hay paros confirmados para hoy.
           </p>
+        ) : null}
+
+        {isStrike && affectedLines ? (
+          <LinesPopup lines={affectedLines} />
         ) : null}
 
         <p className="mt-10 text-sm font-medium text-white/80">

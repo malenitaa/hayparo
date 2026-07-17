@@ -6,12 +6,14 @@ import { logout, updateStatus } from "./actions";
 type Props = {
   initialIsStrike: boolean;
   initialMessage: string;
+  initialAffectedLines: string;
   updatedAt: string | null;
 };
 
 export default function StatusForm({
   initialIsStrike,
   initialMessage,
+  initialAffectedLines,
   updatedAt,
 }: Props) {
   const [state, formAction, pending] = useActionState(updateStatus, undefined);
@@ -89,6 +91,29 @@ export default function StatusForm({
             placeholder="Ej: Paro de UTA, afecta colectivos en todo el AMBA, de 0 a 24hs."
             className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
           />
+        </div>
+
+        <div>
+          <label
+            htmlFor="affectedLines"
+            className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+          >
+            Líneas de colectivo adheridas (opcional)
+          </label>
+          <textarea
+            id="affectedLines"
+            name="affectedLines"
+            rows={2}
+            defaultValue={initialAffectedLines}
+            placeholder="Ej: 12, 15, 60, 152 — o 'todas las líneas de la UTA'"
+            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-zinc-900 focus:border-zinc-500 focus:outline-none dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+          />
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            Se muestra en un botón aparte (&ldquo;Ver líneas
+            afectadas&rdquo;) para no desordenar la respuesta principal.
+            Dejalo vacío si no aplica o no
+            se sabe todavía.
+          </p>
         </div>
 
         {state?.error ? (

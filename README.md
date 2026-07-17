@@ -8,10 +8,14 @@ a mano desde `/admin` — no hay scraping ni automatización.
 
 - `/` lee el estado actual desde Supabase en cada visita (sin caché) y
   muestra SÍ/NO en grande, con el contexto (gremio, servicios afectados,
-  horario) cuando hay paro, y la fecha/hora de la última actualización.
+  horario) cuando hay paro, y la fecha/hora de la última actualización. Si
+  se cargaron líneas de colectivo adheridas, aparece un botón ("Ver líneas
+  afectadas") que las muestra en un popup, sin mover ni desordenar la
+  respuesta principal.
 - `/admin` está protegida con una contraseña única (variable de entorno
-  `ADMIN_PASSWORD`, sin usuarios). Desde ahí se togglea SÍ/NO hay paro y
-  se escribe el contexto en un campo de texto libre.
+  `ADMIN_PASSWORD`, sin usuarios). Desde ahí se togglea SÍ/NO hay paro, se
+  escribe el contexto en un campo de texto libre y, opcionalmente, la lista
+  de líneas de colectivo adheridas.
 - Todo se guarda en una sola fila de la tabla `strike_status` en Supabase
   (se pisa en cada actualización, no hay historial).
 
@@ -23,10 +27,12 @@ a mano desde `/admin` — no hay scraping ni automatización.
    npm install
    ```
 
-2. Crear un proyecto en [Supabase](https://supabase.com) (gratis) y correr
-   el contenido de [`supabase-schema.sql`](./supabase-schema.sql) en el
-   SQL Editor del proyecto. Esto crea la tabla `strike_status` y la deja
-   sembrada en "NO hay paro".
+2. Conseguir un proyecto en [Supabase](https://supabase.com): podés crear
+   uno nuevo (plan gratis) o reusar uno que ya tengas — la tabla que se
+   crea es autocontenida y no toca nada más de ese proyecto. Correr el
+   contenido de [`supabase-schema.sql`](./supabase-schema.sql) en el SQL
+   Editor. Esto crea la tabla `strike_status` y la deja sembrada en "NO hay
+   paro".
 
 3. Copiar `.env.example` a `.env.local` y completar:
 
@@ -53,7 +59,10 @@ a mano desde `/admin` — no hay scraping ni automatización.
 2. Togglear SÍ/NO hay paro.
 3. Escribir el contexto (gremio, servicios afectados, si es parcial o
    total, horario) — solo se usa cuando hay paro.
-4. Guardar. La página principal refleja el cambio de inmediato, no hay
+4. Opcional: listar las líneas de colectivo adheridas (ej: "12, 15, 60,
+   152" o "todas las líneas de la UTA"). Se muestran en un botón/popup
+   aparte en la home, no en la respuesta principal.
+5. Guardar. La página principal refleja el cambio de inmediato, no hay
    caché.
 
 ## Deployar a Vercel

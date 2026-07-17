@@ -3,6 +3,7 @@ import { getSupabase } from "@/lib/supabase";
 export type StrikeStatus = {
   isStrike: boolean;
   message: string;
+  affectedLines: string;
   updatedAt: string;
 };
 
@@ -17,7 +18,7 @@ export async function getStrikeStatus(): Promise<StrikeStatusResult> {
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from("strike_status")
-      .select("is_strike, message, updated_at")
+      .select("is_strike, message, affected_lines, updated_at")
       .eq("id", ROW_ID)
       .single();
 
@@ -27,6 +28,7 @@ export async function getStrikeStatus(): Promise<StrikeStatusResult> {
       ok: true,
       isStrike: data.is_strike,
       message: data.message ?? "",
+      affectedLines: data.affected_lines ?? "",
       updatedAt: data.updated_at,
     };
   } catch {
@@ -36,13 +38,15 @@ export async function getStrikeStatus(): Promise<StrikeStatusResult> {
 
 export async function setStrikeStatus(
   isStrike: boolean,
-  message: string
+  message: string,
+  affectedLines: string
 ): Promise<void> {
   const supabase = getSupabase();
   const { error } = await supabase.from("strike_status").upsert({
     id: ROW_ID,
     is_strike: isStrike,
     message: message.trim(),
+    affected_lines: affectedLines.trim(),
     updated_at: new Date().toISOString(),
   });
 

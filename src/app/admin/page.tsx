@@ -29,6 +29,7 @@ export default async function AdminPage() {
       <StatusForm
         initialIsStrike={status.ok ? status.isStrike : false}
         initialMessage={status.ok ? status.message : ""}
+        initialAffectedLines={status.ok ? status.affectedLines : ""}
         updatedAt={status.ok ? status.updatedAt : null}
       />
     </div>
