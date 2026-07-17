@@ -157,16 +157,18 @@ pegarle y con qué secreto autenticarse:
 2. Pestaña **Variables** → **New repository variable**:
    - Nombre: `HAYPARO_URL`
    - Valor: el dominio de producción, sin `/` al final (ej.
-     `https://hayparo.vercel.app`).
+     `https://hayparo.net.ar`).
 3. Pestaña **Secrets** → **New repository secret**:
    - Nombre: `CRON_SECRET`
    - Valor: el mismo que cargaste como `CRON_SECRET` en Vercel.
 4. **Importante**: los workflows con `schedule` de GitHub Actions solo se
    disparan solos con la versión del archivo que está en la **rama por
-   defecto** del repo (normalmente `main`). Si este workflow todavía está
-   en una rama aparte, no va a correr solo hasta que se mergee — mientras
-   tanto podés dispararlo a mano desde la pestaña **Actions** del repo
-   (botón "Run workflow", gracias al trigger `workflow_dispatch`).
+   defecto** del repo. Si en algún momento cambiás cuál es la rama por
+   defecto (por ejemplo si creás una rama `main` separada), este workflow
+   deja de dispararse solo hasta que la versión actualizada esté en la
+   nueva rama por defecto — mientras tanto se puede disparar a mano desde
+   la pestaña **Actions** del repo (botón "Run workflow", gracias al
+   trigger `workflow_dispatch`).
 5. Después de la primera corrida (automática o manual), revisá la
    pestaña **Actions** del repo para confirmar que el step no falló, y
    los logs de Vercel (filtrando por `check-strike`) para ver el detalle

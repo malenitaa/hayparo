@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: "/admin",
       },
     ],
-    sitemap: "https://hayparo.vercel.app/sitemap.xml",
+    sitemap: "https://hayparo.net.ar/sitemap.xml",
   };
 }
