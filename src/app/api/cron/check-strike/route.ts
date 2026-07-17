@@ -7,7 +7,21 @@ const LOG_PREFIX = "[cron:check-strike] (a confirmar en producción — primera 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
+    // Diagnóstico temporal (no expone el valor del secreto, solo si está
+    // presente y su longitud) para depurar un mismatch de CRON_SECRET.
+    // TODO: sacar este bloque de debug una vez resuelto.
+    return Response.json(
+      {
+        ok: false,
+        error: "unauthorized",
+        debug: {
+          cronSecretConfigured: Boolean(process.env.CRON_SECRET),
+          cronSecretLength: process.env.CRON_SECRET?.length ?? 0,
+          receivedHeaderLength: authHeader?.length ?? 0,
+        },
+      },
+      { status: 401 }
+    );
   }
 
   console.log(LOG_PREFIX, "arrancando chequeo automático");
