@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getStrikeStatus } from "@/lib/strike-status";
 import LinesPopup from "./lines-popup";
 
@@ -79,12 +78,6 @@ export default async function Home() {
             (gremio, servicios afectados y horario) y se revisa todos los
             días, así que la respuesta que ves arriba está siempre vigente.
           </p>
-          <Link
-            href="/admin"
-            className="mt-8 inline-block text-xs text-zinc-400 hover:text-zinc-600 dark:text-zinc-600 dark:hover:text-zinc-400"
-          >
-            admin
-          </Link>
         </div>
       </section>
     </div>
