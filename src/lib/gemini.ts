@@ -17,11 +17,16 @@ function todayInBuenosAires(): string {
   }).format(new Date());
 }
 
+const MAX_CANDIDATES_IN_PROMPT = 20;
+const MAX_HEADLINE_CHARS = 200;
+const MAX_SOURCE_CHARS = 100;
+
 function buildPrompt(candidates: NewsItem[]): string {
   const list = candidates
+    .slice(0, MAX_CANDIDATES_IN_PROMPT)
     .map(
       (c, i) =>
-        `${i + 1}. "${c.title}" (fuente: ${c.source || "desconocida"}, fecha: ${c.pubDate || "sin fecha"})`
+        `${i + 1}. "${c.title.slice(0, MAX_HEADLINE_CHARS)}" (fuente: ${(c.source || "desconocida").slice(0, MAX_SOURCE_CHARS)}, fecha: ${c.pubDate || "sin fecha"})`
     )
     .join("\n");
 
@@ -53,6 +58,8 @@ Respondé ÚNICAMENTE con un objeto JSON con esta forma exacta, sin texto adicio
 Ante la duda, respondé isStrike: false.`;
 }
 
+const FETCH_TIMEOUT_MS = 25_000;
+
 export async function classifyStrike(
   candidates: NewsItem[]
 ): Promise<StrikeClassification> {
@@ -61,21 +68,33 @@ export async function classifyStrike(
     throw new Error("Falta la variable de entorno GEMINI_API_KEY");
   }
 
-  const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
+  // Validate the model name to prevent path traversal in the URL segment.
+  const rawModel = process.env.GEMINI_MODEL || "gemini-flash-latest";
+  const model = /^[\w.-]+$/.test(rawModel) ? rawModel : "gemini-flash-latest";
+
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: buildPrompt(candidates) }] }],
-      generationConfig: { responseMimeType: "application/json" },
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: buildPrompt(candidates) }] }],
+        generationConfig: { responseMimeType: "application/json" },
+      }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Gemini respondió ${res.status}: ${body.slice(0, 300)}`);
+    // Don't include the response body — it can contain quota details or other
+    // internal API info that should stay server-side (logged by the caller).
+    throw new Error(`Gemini respondió con estado ${res.status}`);
   }
 
   const data = await res.json();

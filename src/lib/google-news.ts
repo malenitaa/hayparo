@@ -21,17 +21,27 @@ export type NewsItem = {
   source: string;
 };
 
+const FETCH_TIMEOUT_MS = 10_000;
+
 export async function fetchCandidateHeadlines(): Promise<NewsItem[]> {
-  const res = await fetch(FEED_URL, {
-    headers: {
-      "User-Agent":
-        "Mozilla/5.0 (compatible; HayParoBot/1.0; +https://www.hayparo.net.ar)",
-    },
-    cache: "no-store",
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(FEED_URL, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; HayParoBot/1.0; +https://www.hayparo.net.ar)",
+      },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
-    throw new Error(`Google News RSS respondió ${res.status}`);
+    throw new Error(`Google News RSS respondió con error`);
   }
 
   const xml = await res.text();

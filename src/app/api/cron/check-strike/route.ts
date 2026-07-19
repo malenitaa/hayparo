@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { classifyStrike } from "@/lib/gemini";
 import { fetchCandidateHeadlines, filterRecentRelevant } from "@/lib/google-news";
 import { getStrikeStatus, setStrikeStatus } from "@/lib/strike-status";
@@ -11,9 +12,24 @@ const LOG_PREFIX = "[cron:check-strike]";
 // si cambia el horario, se suman líneas, o se levanta el paro.
 const CALM_RECHECK_INTERVAL_MS = 2 * 60 * 60 * 1000;
 
+function safeCompare(a: string, b: string): boolean {
+  try {
+    const bufA = Buffer.from(a);
+    const bufB = Buffer.from(b);
+    if (bufA.length !== bufB.length) return false;
+    return timingSafeEqual(bufA, bufB);
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const secret = process.env.CRON_SECRET;
+  const authHeader = request.headers.get("authorization") ?? "";
+  // Guard against missing env var: without `!secret`, a missing CRON_SECRET
+  // would make the check compare against the literal string "Bearer undefined",
+  // authenticating anyone who sends exactly that header.
+  if (!secret || !safeCompare(authHeader, `Bearer ${secret}`)) {
     return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
@@ -36,12 +52,11 @@ export async function GET(request: Request) {
     headlines = await fetchCandidateHeadlines();
     console.log(LOG_PREFIX, `Google News RSS devolvió ${headlines.length} items`);
   } catch (e) {
-    const error = e instanceof Error ? e.message : String(e);
-    console.error(LOG_PREFIX, "ERROR consultando Google News RSS:", error);
+    console.error(LOG_PREFIX, "ERROR consultando Google News RSS:", e);
     // No tocamos el estado guardado: un error de red/fetch no es lo mismo
     // que "revisamos y no hay señal", así que no queremos pisar un estado
     // válido (manual o de una corrida anterior) por una falla transitoria.
-    return Response.json({ ok: false, step: "fetch-news", error }, { status: 200 });
+    return Response.json({ ok: false, step: "fetch-news", error: "Error al consultar Google News" }, { status: 200 });
   }
 
   const candidates = filterRecentRelevant(headlines);
@@ -70,10 +85,9 @@ export async function GET(request: Request) {
 
     return Response.json({ ok: true, ...result, candidatesConsidered: candidates.length });
   } catch (e) {
-    const error = e instanceof Error ? e.message : String(e);
-    console.error(LOG_PREFIX, "ERROR clasificando con Gemini:", error);
+    console.error(LOG_PREFIX, "ERROR clasificando con Gemini:", e);
     // Igual que arriba: una falla de la API de Gemini no debe pisar el
     // estado guardado.
-    return Response.json({ ok: false, step: "gemini", error }, { status: 200 });
+    return Response.json({ ok: false, step: "gemini", error: "Error al clasificar con Gemini" }, { status: 200 });
   }
 }
