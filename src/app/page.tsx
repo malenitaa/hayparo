@@ -35,11 +35,28 @@ export default async function Home() {
     ? "bg-red-600 dark:bg-red-700"
     : "bg-emerald-600 dark:bg-emerald-700";
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "¿Hay Paro Hoy en Buenos Aires?",
+    dateModified: updatedAt,
+    about: {
+      "@type": "Answer",
+      text: isStrike
+        ? `SÍ hay paro${message ? ` — ${message}` : ""}`
+        : "NO hay paro — Todo tranquilo, no hay paros confirmados para hoy.",
+    },
+  };
+
   return (
     // h-dvh + overflow-hidden: the whole page is exactly one screen, no
     // scrollbar, on mobile and desktop alike (dvh accounts for the
     // mobile browser's address bar, unlike vh).
     <div className={`flex h-dvh flex-col overflow-hidden ${bgClass} transition-colors`}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* min-h-0 lets this flex item shrink below its content size instead
           of pushing the footer out of view; items-center (no
           justify-center) keeps the SI/NO answer's position independent of
