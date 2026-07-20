@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import AppHeightFix from "./app-height-fix";
 
 const SITE_URL = "https://www.hayparo.net.ar";
 
@@ -22,6 +23,12 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,7 +36,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es-AR" className="h-full antialiased">
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <AppHeightFix />
+        {children}
+      </body>
     </html>
   );
 }

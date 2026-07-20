@@ -49,10 +49,12 @@ export default async function Home() {
   };
 
   return (
-    // h-dvh + overflow-hidden: the whole page is exactly one screen, no
-    // scrollbar, on mobile and desktop alike (dvh accounts for the
-    // mobile browser's address bar, unlike vh).
-    <div className={`flex h-dvh flex-col overflow-hidden ${bgClass} transition-colors`}>
+    // h-[var(--app-height)] + overflow-hidden: the whole page is exactly
+    // one screen, no scrollbar, on mobile and desktop alike (--app-height
+    // accounts for the mobile browser's address bar, see AppHeightFix).
+    <div
+      className={`flex h-[var(--app-height)] flex-col overflow-hidden ${bgClass} transition-colors`}
+    >
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
