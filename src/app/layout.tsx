@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import AppHeightFix from "./app-height-fix";
 
-const SITE_URL = "https://www.hayparo.net.ar";
+const SITE_URL = "https://hayparo.net.ar";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

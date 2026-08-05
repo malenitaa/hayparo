@@ -1,197 +1,66 @@
-# ¿Hay Paro Hoy?
+# ¿Hay Paro Hoy? 🇦🇷
 
-Página de una sola pantalla que responde SÍ/NO a si hay paro de transporte
-público (colectivos, subte, trenes) en Buenos Aires. El estado se actualiza
-**solo, automáticamente, varias veces al día**, a partir de noticias. `/admin`
-sigue existiendo, pero como corrección manual (por si el sistema automático
-se equivoca), no como el flujo normal.
+[![Sitio en vivo](https://img.shields.io/badge/sitio-en%20vivo-6b46c1)](https://hayparo.net.ar)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-## Cómo funciona
+**¿Hay paro de colectivos, subte o trenes hoy en Buenos Aires?** Sitio
+web gratuito que responde SÍ/NO al instante, con el detalle de qué
+servicios y líneas están afectados cuando se sabe. El estado se detecta
+**solo, automáticamente**, a partir de noticias — no depende de que
+alguien lo actualice a mano.
 
-- `/` lee el estado actual desde Supabase en cada visita (sin caché) y
-  muestra SÍ/NO en grande, con el contexto (gremio, servicios afectados,
-  horario) cuando hay paro, y la fecha/hora de la última actualización. Si
-  se cargó el detalle de líneas/servicios adheridos (colectivo, subte,
-  tren, con sus líneas específicas cuando se sabe), aparece un botón ("Ver
-  líneas y servicios afectados") que lo muestra en un popup, sin mover ni
-  desordenar la respuesta principal.
-- **Detección automática** (`/api/cron/check-strike`, disparada por un
-  workflow de **GitHub Actions cada 15 minutos** —
-  [`.github/workflows/check-strike.yml`](./.github/workflows/check-strike.yml)):
-  1. El trigger de GitHub Actions dispara siempre cada 15 min, pero la
-     ruta decide si vale la pena hacer el chequeo completo: si el estado
-     guardado ya es **NO hay paro** y se actualizó hace menos de **2
-     horas**, no hace nada (evita gastar llamadas a Gemini cada 15 min
-     sin necesidad). Si hay paro activo, o pasaron más de 2hs desde el
-     último chequeo, sigue con los pasos de abajo.
-  2. Busca titulares recientes en el RSS de búsqueda de Google News
-     (agrega Clarín, La Nación, Infobae, Ámbito, etc. en un solo feed —
-     ver la nota de diseño más abajo sobre por qué se eligió esta fuente
-     en vez de los RSS de cada medio por separado).
-  3. Filtra por palabras clave (paro, huelga, colectivo, subte, tren,
-     gremio, UTA) y por antigüedad (últimas 24hs).
-  4. Si no queda ningún candidato relevante, el estado se fija en **NO hay
-     paro** (mejor un falso negativo ocasional que gritar paro sin
-     evidencia).
-  5. Si hay candidatos, se los pasa a Gemini Flash con un prompt que
-     decide si hay un paro **confirmado para hoy específicamente** (no la
-     semana que viene, no uno ya pasado), devuelve un resumen corto y un
-     desglose por servicio (colectivo/subte/tren) con las líneas puntuales
-     de cada uno cuando los titulares las mencionan.
-  6. Actualiza la misma fila de `strike_status`, guardando también el
-     titular que originó la detección (`detected_from`) y el origen
-     (`updated_by = 'cron'`), para poder auditar si se equivocó.
-  7. Si falla el fetch a Google News o la llamada a Gemini, **no toca el
-     estado guardado** — solo loguea el error. Una falla transitoria no
-     debe pisar un dato válido.
+## Usarlo
 
-  En la práctica: chequeo completo cada 15 min mientras hay un paro
-  activo (para captar cambios de horario, líneas que se suman, o que se
-  levante el paro), y cada 2hs cuando está tranquilo.
+No hay que instalar nada — es una página web. Entrá directo a:
 
-  Nota: se eligió GitHub Actions en vez de Vercel Cron porque el plan
-  Hobby de Vercel limita cada entrada de cron a una corrida por día (para
-  lograr una cadencia más frecuente hacían falta muchas entradas
-  separadas, una por horario). GitHub Actions no tiene ese límite — el
-  mínimo real que respeta es cada 5 minutos, aunque bajo carga puede
-  demorar la ejecución un poco.
-- `/admin` está protegida con una contraseña única (variable de entorno
-  `ADMIN_PASSWORD`, sin usuarios). Sirve para corregir a mano si el
-  automático se equivocó: togglear SÍ/NO, contexto libre y, opcionalmente,
-  el detalle de líneas/servicios adheridos (colectivo, subte, tren).
-  Guardar ahí marca `updated_by = 'manual'`.
-  **Importante**: una corrección manual puede quedar pisada en el
-  próximo chequeo completo si este vuelve a encontrar (o no encuentra)
-  señal — no es un override permanente, es un parche hasta el siguiente
-  chequeo. Si corregís marcando "hay paro", el siguiente chequeo completo
-  llega en 15 min; si corregís a "no hay paro", el siguiente chequeo
-  completo puede tardar hasta 2hs (ver la nota de cadencia arriba).
-- Todo se guarda en una sola fila de la tabla `strike_status` en Supabase
-  (se pisa en cada actualización, no hay historial).
+### 👉 [hayparo.net.ar](https://hayparo.net.ar)
 
-### Por qué Google News RSS y no el RSS de cada medio
+Funciona igual en el celular que en la computadora.
 
-Clarín, La Nación e Infobae tuvieron/tienen RSS propio, pero los medios
-grandes argentinos vienen reforzando protección anti-bots (Cloudflare/WAF),
-que puede bloquear un fetch server-to-server (como el de una función de
-Vercel) aunque el feed técnicamente exista. El RSS de búsqueda de Google
-News agrega varios medios en un solo feed y es menos frágil que apostar a
-uno solo. Contras conocidos: no tiene SLA ni versionado (Google puede
-cambiar el formato sin avisar) y los links son redirects de Google en vez
-de la URL original — no es problema acá porque solo se usa el título del
-titular para pasárselo a Gemini, no el artículo completo.
+## Preguntas frecuentes
 
-**Este mecanismo está marcado como "a confirmar" en los logs** (buscá
-`[cron:check-strike]` en los logs de Vercel) — no se pudo probar en vivo
-durante el desarrollo, así que conviene revisar la primera corrida real en
-producción para confirmar que el fetch a Google News y la respuesta de
-Gemini funcionan como se espera.
+**¿Cómo sabe si hay paro?**
+El sitio revisa noticias de medios argentinos varias veces al día y usa
+inteligencia artificial para decidir si hay evidencia de un paro
+confirmado para hoy específicamente (no uno de la semana que viene, ni
+uno ya terminado).
 
-## Correr local
+**¿Necesito crear una cuenta?**
+No, no hay cuentas, ni login, ni nada parecido.
 
-1. Instalar dependencias:
+**¿Manda mis datos a algún lado?**
+No. El sitio no pide ni guarda ningún dato tuyo — ni siquiera sabe que
+entraste.
 
-   ```bash
-   npm install
-   ```
+**¿Es gratis?**
+Sí, y no tiene publicidad ni ningún costo oculto.
 
-2. Conseguir un proyecto en [Supabase](https://supabase.com): podés crear
-   uno nuevo (plan gratis) o reusar uno que ya tengas — la tabla que se
-   crea es autocontenida y no toca nada más de ese proyecto. Correr el
-   contenido de [`supabase-schema.sql`](./supabase-schema.sql) en el SQL
-   Editor. Esto crea/actualiza la tabla `strike_status` (es seguro
-   volver a correrlo, no pisa datos existentes) y la deja sembrada en "NO
-   hay paro" si es la primera vez.
+**¿Puede equivocarse?**
+Puede pasar — depende de qué tan clara sea la cobertura de noticias ese
+día. Ante la duda, el sistema prefiere decir que no hay paro antes que
+alarmar sin evidencia clara.
 
-3. Copiar `.env.example` a `.env.local` y completar:
+## Para desarrolladores
 
-   ```bash
-   cp .env.example .env.local
-   ```
+Requisitos: [Node.js](https://nodejs.org/) 20+, cuenta gratuita en
+[Supabase](https://supabase.com) y una API key de
+[Google AI Studio](https://aistudio.google.com/apikey) (Gemini).
 
-   - `ADMIN_PASSWORD`: la contraseña para entrar a `/admin`.
-   - `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`: en el dashboard de
-     Supabase, Project Settings → API.
-   - `GEMINI_API_KEY`: de [Google AI Studio](https://aistudio.google.com/apikey)
-     (podés reusar una key de otro proyecto, el free tier no la limita a
-     un solo proyecto).
-   - `CRON_SECRET`: un valor random largo (ej. `openssl rand -hex 32`).
+```bash
+git clone https://github.com/malenitaa/hayparo.git
+cd hayparo
+npm install
+cp .env.example .env.local   # completar con tus propias credenciales
+npm run dev
+```
 
-4. Levantar el servidor:
+## ¿Te sirvió?
 
-   ```bash
-   npm run dev
-   ```
+Si te resultó útil y querés bancar el proyecto:
 
-   Abrir [http://localhost:3000](http://localhost:3000) y
-   [http://localhost:3000/admin](http://localhost:3000/admin).
+- [Cafecito](https://cafecito.app/rezamalena)
+- [Ko-fi](https://ko-fi.com/malenitaa)
 
-   Para probar el cron a mano en local:
+## Licencia
 
-   ```bash
-   curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/check-strike
-   ```
-
-## Corregir el estado a mano (excepcional)
-
-1. Entrar a `https://<tu-dominio>/admin` e ingresar la contraseña.
-2. Togglear SÍ/NO hay paro.
-3. Escribir el contexto (gremio, servicios afectados, si es parcial o
-   total, horario) — solo se usa cuando hay paro.
-4. Opcional: detallar por servicio (colectivo, subte, tren) qué líneas
-   específicas están adheridas.
-5. Guardar. Tené en cuenta que el próximo chequeo automático completo
-   (cada 15 min si quedó "hay paro", cada 2hs si quedó "no hay paro")
-   puede volver a cambiar el estado según lo que encuentre.
-
-## Deployar a Vercel
-
-1. Importar este repo en [vercel.com/new](https://vercel.com/new).
-2. En las variables de entorno del proyecto en Vercel, cargar las de
-   `.env.example`: `ADMIN_PASSWORD`, `SUPABASE_URL`,
-   `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`, `CRON_SECRET`.
-3. Deploy.
-4. Verificar que `supabase-schema.sql` ya se haya corrido en el proyecto
-   de Supabase antes del primer visit, así la home no arranca rota.
-5. Configurar el trigger de GitHub Actions (ver siguiente sección) — sin
-   esto el estado no se actualiza solo, solo queda lo que cargues a mano
-   en `/admin`.
-
-## Configurar el chequeo automático (GitHub Actions)
-
-El workflow ya está en el repo
-([`.github/workflows/check-strike.yml`](./.github/workflows/check-strike.yml)),
-pero necesita dos valores configurados en GitHub para saber a qué URL
-pegarle y con qué secreto autenticarse:
-
-1. En el repo de GitHub → **Settings → Secrets and variables → Actions**.
-2. Pestaña **Variables** → **New repository variable**:
-   - Nombre: `HAYPARO_URL`
-   - Valor: el dominio de producción, sin `/` al final (ej.
-     `https://www.hayparo.net.ar`). **Importante**: usá el dominio que NO
-     redirige (revisá en Vercel → Domains cuál es el primario) — si le
-     pegás al que redirige a otro host, herramientas como `curl
-     --location` (y probablemente el propio workflow) descartan el header
-     `Authorization` al seguir la redirección entre hosts distintos, y el
-     chequeo automático va a fallar en silencio con 401.
-3. Pestaña **Secrets** → **New repository secret**:
-   - Nombre: `CRON_SECRET`
-   - Valor: el mismo que cargaste como `CRON_SECRET` en Vercel.
-4. **Importante**: los workflows con `schedule` de GitHub Actions solo se
-   disparan solos con la versión del archivo que está en la **rama por
-   defecto** del repo. Si en algún momento cambiás cuál es la rama por
-   defecto (por ejemplo si creás una rama `main` separada), este workflow
-   deja de dispararse solo hasta que la versión actualizada esté en la
-   nueva rama por defecto — mientras tanto se puede disparar a mano desde
-   la pestaña **Actions** del repo (botón "Run workflow", gracias al
-   trigger `workflow_dispatch`).
-5. Después de la primera corrida (automática o manual), revisá la
-   pestaña **Actions** del repo para confirmar que el step no falló, y
-   los logs de Vercel (filtrando por `check-strike`) para ver el detalle
-   de qué encontró.
-
-## Stack
-
-Next.js (App Router) + TypeScript + Tailwind + Supabase + GitHub Actions
-(scheduler) + Gemini Flash (clasificación de titulares). Sin APIs externas
-pagas.
+MIT — ver [LICENSE](LICENSE).

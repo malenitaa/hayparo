@@ -31,7 +31,7 @@ export async function fetchCandidateHeadlines(): Promise<NewsItem[]> {
     res = await fetch(FEED_URL, {
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; HayParoBot/1.0; +https://www.hayparo.net.ar)",
+          "Mozilla/5.0 (compatible; HayParoBot/1.0; +https://hayparo.net.ar)",
       },
       cache: "no-store",
       signal: controller.signal,

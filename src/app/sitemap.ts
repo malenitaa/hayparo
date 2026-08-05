@@ -6,7 +6,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     {
-      url: "https://www.hayparo.net.ar",
+      url: "https://hayparo.net.ar",
       // El estado real se actualiza cada 15min-2hs (ver cron/check-strike);
       // usamos el updatedAt real de Supabase en vez de la fecha del build/
       // request, para que el sitemap refleje cuándo cambió el contenido
