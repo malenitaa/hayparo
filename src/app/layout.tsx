@@ -6,9 +6,9 @@ const SITE_URL = "https://hayparo.net.ar";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "¿Hay Paro Hoy en Buenos Aires? Colectivos, Subte y Trenes",
+    title: "¿Hay Paro Hoy en Buenos Aires? SÍ o NO: Colectivos, Subte y Trenes",
   description:
-    "Respuesta rápida y actualizada: ¿hay paro de transporte público hoy en Buenos Aires? Colectivos, subte y trenes, con gremio, servicios afectados y horario cuando se confirma un paro.",
+        "SÍ o NO al instante: paro de colectivos, subte o trenes hoy en Buenos Aires, con gremio, servicios afectados y horario cuando se confirma.",
   openGraph: {
     title: "¿Hay Paro Hoy en Buenos Aires?",
     description:
