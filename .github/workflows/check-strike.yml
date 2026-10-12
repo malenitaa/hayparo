@@ -10,7 +10,16 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
     steps:
+      # GitHub deshabilita los workflows programados tras 60 días sin
+      # actividad en el repo. Re-habilitarlo vía API reinicia ese contador.
+      - name: Mantener el workflow activo
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/check-strike.yml/enable"
+
       - name: Llamar a /api/cron/check-strike
         env:
           HAYPARO_URL: ${{ vars.HAYPARO_URL }}
