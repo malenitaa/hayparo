@@ -1,4 +1,5 @@
 import { getDisplayState } from "@/lib/freshness";
+import { serializeJsonLd } from "@/lib/json-ld";
 import { getStrikeStatus } from "@/lib/strike-status";
 import LinesPopup from "./lines-popup";
 import BodyBgSync from "./body-bg-sync";
@@ -77,7 +78,7 @@ export default async function Home() {
       >
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
         />
         {/* min-h-0 lets this flex item shrink below its content size instead
           of pushing the footer out of view; items-center (no

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { connection } from "next/server";
 import "./globals.css";
 import AppHeightFix from "./app-height-fix";
 
@@ -35,11 +36,15 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // La CSP (src/proxy.ts) usa un nonce por request, y Next solo se lo puede
+  // poner a sus scripts si la página se renderiza en cada request. Sin esto,
+  // las páginas estáticas (como el 404) quedan sin JS.
+  await connection();
   return (
     <html lang="es-AR" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
