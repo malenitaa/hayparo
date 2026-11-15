@@ -1,3 +1,4 @@
+import { getDisplayState } from "@/lib/freshness";
 import { getStrikeStatus } from "@/lib/strike-status";
 import LinesPopup from "./lines-popup";
 import BodyBgSync from "./body-bg-sync";
@@ -34,13 +35,20 @@ export default async function Home() {
     );
   }
 
-  const { isStrike, message, affectedLines, updatedAt } = status;
-  const bgClass = isStrike
-    ? "bg-red-600 dark:bg-red-700"
-    : "bg-emerald-600 dark:bg-emerald-700";
-  const bgHex = isStrike
-    ? { light: "#dc2626", dark: "#b91c1c" }
-    : { light: "#059669", dark: "#047857" };
+  const { message, affectedLines, updatedAt } = status;
+  // Si el último chequeo no es de hoy, no afirmamos ni SÍ ni NO (#3).
+  const state = getDisplayState(status);
+  const isStrike = state === "strike";
+  const bgClass = {
+    strike: "bg-red-600 dark:bg-red-700",
+    calm: "bg-emerald-600 dark:bg-emerald-700",
+    stale: "bg-zinc-600 dark:bg-zinc-700",
+  }[state];
+  const bgHex = {
+    strike: { light: "#dc2626", dark: "#b91c1c" },
+    calm: { light: "#059669", dark: "#047857" },
+    stale: { light: "#52525b", dark: "#3f3f46" },
+  }[state];
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -49,9 +57,11 @@ export default async function Home() {
     dateModified: updatedAt,
     about: {
       "@type": "Answer",
-      text: isStrike
-        ? `SÍ hay paro${message ? ` — ${message}` : ""}`
-        : "NO hay paro — Todo tranquilo, no hay paros confirmados para hoy.",
+      text: {
+        strike: `SÍ hay paro${message ? ` — ${message}` : ""}`,
+        calm: "NO hay paro — Todo tranquilo, no hay paros confirmados para hoy.",
+        stale: "Sin datos actualizados — no tenemos un chequeo de hoy.",
+      }[state],
     },
   };
 
@@ -79,16 +89,20 @@ export default async function Home() {
           </h1>
 
           <p className="mt-1 text-[clamp(5rem,28vh,13rem)] font-black leading-none text-white drop-shadow-sm">
-            {isStrike ? "SÍ" : "NO"}
+            {{ strike: "SÍ", calm: "NO", stale: "?" }[state]}
           </p>
 
           {isStrike && message ? (
             <p className="mt-2 line-clamp-2 max-w-xl text-base font-medium text-white sm:text-lg">
               {message}
             </p>
-          ) : !isStrike ? (
+          ) : state === "calm" ? (
             <p className="mt-2 max-w-xl text-base font-medium text-white sm:text-lg">
               Todo tranquilo, no hay paros confirmados para hoy.
+            </p>
+          ) : state === "stale" ? (
+            <p className="mt-2 max-w-xl text-base font-medium text-white sm:text-lg">
+              No tenemos datos actualizados de hoy. Volvé a fijarte en un rato.
             </p>
           ) : null}
 
