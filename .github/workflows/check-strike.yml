@@ -29,4 +29,4 @@ jobs:
             echo "Falta la variable de repo HAYPARO_URL (Settings > Secrets and variables > Actions > Variables)"
             exit 1
           fi
-          curl -sS -f -H "Authorization: Bearer $CRON_SECRET" "$HAYPARO_URL/api/cron/check-strike"
+          curl -sS --fail-with-body -H "Authorization: Bearer $CRON_SECRET" "$HAYPARO_URL/api/cron/check-strike"
