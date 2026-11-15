@@ -43,7 +43,8 @@ export default function StatusForm({
         El estado se actualiza solo, varias veces al día, a partir de
         noticias. Guardar acá lo pisa como <strong>corrección manual</strong>{" "}
         — usalo solo si el sistema automático se equivocó, no como la forma
-        normal de actualizar.
+        normal de actualizar. La corrección vale hasta el fin del día (hora
+        argentina): hasta entonces el chequeo automático no la toca.
       </p>
 
       {updatedAt ? (
