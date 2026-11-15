@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { getDisplayState } from "@/lib/freshness";
 import { getStrikeStatus } from "@/lib/strike-status";
 
 // El estado puede cambiar en cualquier momento del día (el cron corre cada
@@ -19,14 +20,17 @@ function truncate(text: string, max: number): string {
 
 export default async function OpengraphImage() {
   const status = await getStrikeStatus();
-  const isStrike = status.ok && status.isStrike;
-  const bg = !status.ok ? "#52525b" : isStrike ? "#dc2626" : "#059669";
-  const headline = !status.ok ? "?" : isStrike ? "SÍ" : "NO";
+  // Si el último chequeo no es de hoy, no afirmamos ni SÍ ni NO (#3).
+  const state = status.ok ? getDisplayState(status) : "stale";
+  const bg = { strike: "#dc2626", calm: "#059669", stale: "#52525b" }[state];
+  const headline = { strike: "SÍ", calm: "NO", stale: "?" }[state];
   const subtitle = !status.ok
     ? "No pudimos cargar el estado ahora mismo."
-    : isStrike
-      ? truncate(status.message || "Hay paro hoy.", 90)
-      : "Todo tranquilo, no hay paros confirmados para hoy.";
+    : {
+        strike: truncate(status.message || "Hay paro hoy.", 90),
+        calm: "Todo tranquilo, no hay paros confirmados para hoy.",
+        stale: "No tenemos datos actualizados de hoy.",
+      }[state];
 
   return new ImageResponse(
     (
