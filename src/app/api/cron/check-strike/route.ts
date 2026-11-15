@@ -6,7 +6,7 @@ import { getStrikeStatus, setStrikeStatus } from "@/lib/strike-status";
 
 const LOG_PREFIX = "[cron:check-strike]";
 
-// El trigger de GitHub Actions dispara siempre cada 15 min. Cuando el
+// pg_cron en Supabase (supabase-cron.sql) dispara cada 15 min. Cuando el
 // estado guardado ya dice "no hay paro", no hace falta gastar una
 // llamada a Gemini cada 15 min — alcanza con revisar cada 2hs. Si el
 // estado es "hay paro", sí conviene chequear seguido (cada 15 min) por

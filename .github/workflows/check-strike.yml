@@ -2,8 +2,10 @@ name: Check strike status
 
 on:
   schedule:
-    # Cada 15 minutos. GitHub puede demorar la ejecución bajo carga alta,
-    # no es un timer exacto.
+    # El disparador principal es pg_cron en Supabase (supabase-cron.sql),
+    # que sí corre cada 15 min. GitHub demora los schedules (en la práctica
+    # corre cada ~5 h), así que esto queda como alarma: si la ruta devuelve
+    # 5xx, la corrida sale en rojo y llega el mail de GitHub.
     - cron: "*/15 * * * *"
   workflow_dispatch: {}
 
