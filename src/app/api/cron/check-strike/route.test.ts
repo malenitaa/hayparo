@@ -93,3 +93,52 @@ describe("GET /api/cron/check-strike", () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe("GET /api/cron/check-strike con corrección manual", () => {
+  it("una corrección manual de hoy no la pisa el cron aunque Gemini diga paro", async () => {
+    vi.mocked(getStrikeStatus).mockResolvedValue({
+      ok: true,
+      isStrike: false,
+      message: "",
+      affectedLines: "",
+      updatedBy: "manual",
+      detectedFrom: "",
+      updatedAt: new Date().toISOString(),
+    });
+    vi.mocked(classifyStrike).mockResolvedValue({
+      isStrike: true,
+      message: "Paro de colectivos",
+      affectedLines: "",
+      sourceHeadline: candidate.title,
+    });
+
+    const res = await GET(request());
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, skipped: true, reason: "manual-override" });
+    expect(setStrikeStatus).not.toHaveBeenCalled();
+  });
+
+  it("una corrección manual de otro día ya no manda: el cron vuelve a decidir", async () => {
+    vi.mocked(getStrikeStatus).mockResolvedValue({
+      ok: true,
+      isStrike: true,
+      message: "Paro viejo",
+      affectedLines: "",
+      updatedBy: "manual",
+      detectedFrom: "",
+      updatedAt: "2026-01-01T12:00:00.000Z",
+    });
+    vi.mocked(classifyStrike).mockResolvedValue({
+      isStrike: false,
+      message: "",
+      affectedLines: "",
+      sourceHeadline: "",
+    });
+
+    const res = await GET(request());
+
+    expect(res.status).toBe(200);
+    expect(setStrikeStatus).toHaveBeenCalledWith(false, "", "", "cron", "");
+  });
+});

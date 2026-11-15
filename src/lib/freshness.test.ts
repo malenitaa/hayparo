@@ -29,6 +29,16 @@ describe("getDisplayState", () => {
     expect(getDisplayState({ isStrike: false, updatedAt: "2026-11-15T09:00:00.000Z" }, now)).toBe("stale");
   });
 
+  it("una corrección manual de hoy vale aunque tenga más de 8 h", () => {
+    expect(
+      getDisplayState({ isStrike: true, updatedAt: "2026-11-15T09:00:00.000Z", updatedBy: "manual" }, now)
+    ).toBe("strike");
+  });
+
+  it("una corrección manual de ayer no vale", () => {
+    expect(getDisplayState({ isStrike: true, updatedAt: ayer, updatedBy: "manual" }, now)).toBe("stale");
+  });
+
   it("una fecha inválida no vale", () => {
     expect(getDisplayState({ isStrike: false, updatedAt: "no-es-fecha" }, now)).toBe("stale");
   });

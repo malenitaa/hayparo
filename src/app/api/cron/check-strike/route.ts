@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "crypto";
+import { isSameBuenosAiresDay } from "@/lib/freshness";
 import { classifyStrike } from "@/lib/gemini";
 import { fetchCandidateHeadlines, filterRecentRelevant } from "@/lib/google-news";
 import { getStrikeStatus, setStrikeStatus } from "@/lib/strike-status";
@@ -34,6 +35,14 @@ export async function GET(request: Request) {
   }
 
   const current = await getStrikeStatus();
+
+  // Una corrección manual desde /admin manda hasta el fin del día en que se
+  // cargó (hora argentina). Al día siguiente vuelve a decidir el cron.
+  if (current.ok && current.updatedBy === "manual" && isSameBuenosAiresDay(current.updatedAt)) {
+    console.log(LOG_PREFIX, "hay una corrección manual de hoy -> se respeta y se salta este chequeo");
+    return Response.json({ ok: true, skipped: true, reason: "manual-override" });
+  }
+
   if (current.ok && !current.isStrike) {
     const elapsedMs = Date.now() - Date.parse(current.updatedAt);
     if (Number.isFinite(elapsedMs) && elapsedMs < CALM_RECHECK_INTERVAL_MS) {
