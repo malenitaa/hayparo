@@ -42,8 +42,8 @@ select cron.schedule(
         where name = 'hayparo_cron_secret'
       )
     ),
-    -- La ruta puede tardar hasta ~35 s (Google News + Gemini).
-    timeout_milliseconds := 60000
+    -- La ruta puede tardar hasta ~60 s (10 s de Google News + 50 s de Gemini).
+    timeout_milliseconds := 90000
   );
   $$
 );
