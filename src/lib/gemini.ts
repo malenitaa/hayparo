@@ -77,6 +77,12 @@ Ante la duda, respondé isStrike: false.`;
 // de Vercel tiene bastante más (Fluid Compute).
 const FETCH_TIMEOUT_MS = 50_000;
 
+// Modelo fijo y no el alias "gemini-flash-latest": desde el 10/11 el alias
+// (y gemini-3.8-flash, al que probablemente apunta) no devuelve nada por
+// generateContent, ni en 90 s. gemini-3.5-flash responde en pocos segundos
+// (probado el 15/11, #2).
+const DEFAULT_MODEL = "gemini-3.5-flash";
+
 export async function classifyStrike(
   candidates: NewsItem[]
 ): Promise<StrikeClassification> {
@@ -86,8 +92,8 @@ export async function classifyStrike(
   }
 
   // Validate the model name to prevent path traversal in the URL segment.
-  const rawModel = process.env.GEMINI_MODEL || "gemini-flash-latest";
-  const model = /^[\w.-]+$/.test(rawModel) ? rawModel : "gemini-flash-latest";
+  const rawModel = process.env.GEMINI_MODEL || DEFAULT_MODEL;
+  const model = /^[\w.-]+$/.test(rawModel) ? rawModel : DEFAULT_MODEL;
 
   // La clave va en el header y no en la query string, para que no quede en
   // logs de URLs.
