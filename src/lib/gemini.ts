@@ -72,7 +72,9 @@ export async function classifyStrike(
   const rawModel = process.env.GEMINI_MODEL || "gemini-flash-latest";
   const model = /^[\w.-]+$/.test(rawModel) ? rawModel : "gemini-flash-latest";
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  // La clave va en el header y no en la query string, para que no quede en
+  // logs de URLs.
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -80,7 +82,7 @@ export async function classifyStrike(
   try {
     res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({
         contents: [{ parts: [{ text: buildPrompt(candidates) }] }],
         generationConfig: { responseMimeType: "application/json" },

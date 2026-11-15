@@ -56,7 +56,8 @@ export async function GET(request: Request) {
     // No tocamos el estado guardado: un error de red/fetch no es lo mismo
     // que "revisamos y no hay señal", así que no queremos pisar un estado
     // válido (manual o de una corrida anterior) por una falla transitoria.
-    return Response.json({ ok: false, step: "fetch-news", error: "Error al consultar Google News" }, { status: 200 });
+    // Sí devolvemos 5xx para que el workflow que llama al cron quede en rojo.
+    return Response.json({ ok: false, step: "fetch-news", error: "Error al consultar Google News" }, { status: 502 });
   }
 
   const candidates = filterRecentRelevant(headlines);
@@ -87,7 +88,11 @@ export async function GET(request: Request) {
   } catch (e) {
     console.error(LOG_PREFIX, "ERROR clasificando con Gemini:", e);
     // Igual que arriba: una falla de la API de Gemini no debe pisar el
-    // estado guardado.
-    return Response.json({ ok: false, step: "gemini", error: "Error al clasificar con Gemini" }, { status: 200 });
+    // estado guardado, pero sí tiene que verse como falla (5xx). `detail`
+    // lleva el mensaje del error (p. ej. "Gemini respondió con estado 404"),
+    // que gemini.ts arma sin datos internos, para diagnosticar desde el log
+    // público del workflow sin entrar a Vercel.
+    const detail = e instanceof Error ? e.message : String(e);
+    return Response.json({ ok: false, step: "gemini", error: "Error al clasificar con Gemini", detail }, { status: 502 });
   }
 }
