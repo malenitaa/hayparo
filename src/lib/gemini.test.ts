@@ -22,6 +22,21 @@ describe("classifyStrike", () => {
     expect(String(url)).not.toContain("clave-de-test");
     expect(init.headers["x-goog-api-key"]).toBe("clave-de-test");
   });
+
+  it("pide razonamiento bajo para no pasarse del timeout", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "clave-de-test");
+    const fetchMock = vi.fn().mockResolvedValue(
+      Response.json({
+        candidates: [{ content: { parts: [{ text: '{"isStrike":false}' }] } }],
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await classifyStrike([{ title: "t", pubDate: "", source: "" }]);
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.generationConfig.thinkingConfig).toEqual({ thinkingLevel: "low" });
+  });
 });
 
 describe("buildPrompt", () => {

@@ -72,7 +72,10 @@ Respondé ÚNICAMENTE con un objeto JSON con esta forma exacta, sin texto adicio
 Ante la duda, respondé isStrike: false.`;
 }
 
-const FETCH_TIMEOUT_MS = 25_000;
+// Desde el 10/11 las llamadas pasaban los 25 s y se cortaban por este
+// timeout ("This operation was aborted", #2). 50 s deja margen; la función
+// de Vercel tiene bastante más (Fluid Compute).
+const FETCH_TIMEOUT_MS = 50_000;
 
 export async function classifyStrike(
   candidates: NewsItem[]
@@ -99,7 +102,14 @@ export async function classifyStrike(
       headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
       body: JSON.stringify({
         contents: [{ parts: [{ text: buildPrompt(candidates) }] }],
-        generationConfig: { responseMimeType: "application/json" },
+        generationConfig: {
+          responseMimeType: "application/json",
+          // Clasificar titulares no necesita razonamiento largo, y el
+          // "thinking" por defecto de los Flash nuevos es lo que alarga la
+          // respuesta. Si el modelo no acepta el parámetro, Gemini devuelve
+          // 400 y se ve en el `detail` del cron.
+          thinkingConfig: { thinkingLevel: "low" },
+        },
       }),
       signal: controller.signal,
     });
