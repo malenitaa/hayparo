@@ -1,12 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   checkPassword,
+  clearLoginFailures,
   createSession,
   destroySession,
   isAuthenticated,
+  registerLoginAttempt,
 } from "@/lib/admin-auth";
 import { setStrikeStatus } from "@/lib/strike-status";
 
@@ -17,12 +20,27 @@ export async function login(
   formData: FormData
 ): Promise<ActionState> {
   const password = String(formData.get("password") ?? "");
+  // En Vercel, x-forwarded-for lo pone la plataforma: el primer valor es la
+  // IP del cliente.
+  const ip =
+    (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "desconocida";
 
-  if (!checkPassword(password)) {
-    return { error: "Contraseña incorrecta" };
+  try {
+    const { blocked } = await registerLoginAttempt(ip);
+    if (blocked) {
+      return { error: "Demasiados intentos fallidos. Probá de nuevo en 15 minutos." };
+    }
+
+    if (!checkPassword(password)) {
+      return { error: "Contraseña incorrecta" };
+    }
+
+    await clearLoginFailures(ip);
+    await createSession();
+  } catch (e) {
+    console.error("[admin] error en el login:", e);
+    return { error: "No se pudo iniciar sesión. ¿Están creadas las tablas de supabase-admin.sql?" };
   }
-
-  await createSession();
   redirect("/admin");
 }
 
