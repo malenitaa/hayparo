@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 type Row = Record<string, unknown>;
 const tables: Record<string, Row[]> = {};
 let dbRota = false; // simula que no se corrió supabase-admin.sql
+// Operaciones que fallan, como "insert:admin_login_failures".
+const fallas = new Set<string>();
 function query(table: string) {
   const filters: ((r: Row) => boolean)[] = [];
   let op: "select" | "delete" = "select";
@@ -13,6 +15,7 @@ function query(table: string) {
     delete() { op = "delete"; return b; },
     insert(row: Row) {
       if (dbRota) return Promise.resolve({ error: { message: "relation does not exist" } });
+      if (fallas.has(`insert:${table}`)) return Promise.resolve({ error: { message: "falla" } });
       (tables[table] ??= []).push({ attempted_at: new Date().toISOString(), ...row });
       return Promise.resolve({ error: null });
     },
@@ -25,6 +28,7 @@ function query(table: string) {
       const rows = tables[table] ?? [];
       const match = rows.filter((r) => filters.every((f) => f(r)));
       if (op === "delete") {
+        if (fallas.has(`delete:${table}`)) return resolve({ error: { message: "falla" } });
         tables[table] = rows.filter((r) => !match.includes(r));
         return resolve({ error: null });
       }
@@ -69,6 +73,7 @@ async function loginOk() {
 beforeEach(() => {
   process.env.ADMIN_PASSWORD = PASSWORD;
   dbRota = false;
+  fallas.clear();
   for (const k of Object.keys(tables)) delete tables[k];
   cookieJar.clear();
 });
@@ -117,6 +122,31 @@ describe("sesión de /admin", () => {
     });
     expect(cookieJar.has("hp_admin_session")).toBe(false);
     expect(tables.admin_login_failures.every((r) => r.ip === "203.0.113.7")).toBe(true);
+  });
+
+  it("con muchos logins en paralelo, el freno igual deja probar 5 contraseñas como mucho", async () => {
+    let probadas = 0;
+    const intentos = Array.from({ length: 50 }, () =>
+      login(undefined, form("mal")).then((r) => {
+        if (r?.error === "Contraseña incorrecta") probadas++;
+      })
+    );
+    await Promise.all(intentos);
+    expect(probadas).toBeLessThanOrEqual(5);
+  });
+
+  it("si no se puede registrar el fallo, el login no responde como un fallo normal", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    fallas.add("insert:admin_login_failures");
+    const r = await login(undefined, form("mal"));
+    expect(r?.error).not.toBe("Contraseña incorrecta");
+    expect(r?.error).toBeTruthy();
+  });
+
+  it("si el logout no puede borrar la sesión de la base, no simula que salió", async () => {
+    await loginOk();
+    fallas.add("delete:admin_sessions");
+    await expect(logout()).rejects.not.toThrow("NEXT_REDIRECT");
   });
 
   it("los fallos viejos (fuera de la ventana de 15 min) no bloquean", async () => {

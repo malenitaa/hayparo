@@ -13,7 +13,9 @@ create table if not exists admin_sessions (
 );
 alter table admin_sessions enable row level security;
 
--- Un registro por login fallido, para frenar intentos repetidos desde una IP.
+-- Un registro por intento de login, para frenar intentos repetidos desde una
+-- IP. Se guarda antes de mirar la contraseña; un login exitoso borra los de
+-- su IP.
 create table if not exists admin_login_failures (
   id bigint generated always as identity primary key,
   ip text not null,

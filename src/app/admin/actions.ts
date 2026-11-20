@@ -9,8 +9,7 @@ import {
   createSession,
   destroySession,
   isAuthenticated,
-  isLoginBlocked,
-  recordLoginFailure,
+  registerLoginAttempt,
 } from "@/lib/admin-auth";
 import { setStrikeStatus } from "@/lib/strike-status";
 
@@ -27,12 +26,12 @@ export async function login(
     (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "desconocida";
 
   try {
-    if (await isLoginBlocked(ip)) {
+    const { blocked } = await registerLoginAttempt(ip);
+    if (blocked) {
       return { error: "Demasiados intentos fallidos. Probá de nuevo en 15 minutos." };
     }
 
     if (!checkPassword(password)) {
-      await recordLoginFailure(ip);
       return { error: "Contraseña incorrecta" };
     }
 
